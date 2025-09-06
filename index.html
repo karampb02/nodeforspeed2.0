@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warranty Wali Drawer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .card {
+            transition: all 0.3s ease;
+            border-left: 4px solid;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card.expired {
+            border-left-color: #e53e3e;
+        }
+
+        .card.expiring {
+            border-left-color: #d69e2e;
+        }
+
+        .card.active {
+            border-left-color: #38a169;
+        }
+
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: #e2e8f0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .card-expanding {
+            transition: all 0.3s ease;
+        }
+
+        .stats-card {
+            transition: all 0.3s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+
+<body class="text-gray-800">
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">
+                <i class="fas fa-receipt text-blue-600 mr-3"></i>Warranty Wali Drawer
+            </h1>
+            <p class="text-gray-600 mt-2">Your digital drawer for bills and warranties. Never lose a receipt again!</p>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="stats-card bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600">Total Products</p>
+                        <p class="text-2xl font-bold" id="total-products">0</p>
+                    </div>
+                    <i class="fas fa-boxes text-blue-500 text-2xl"></i>
+                </div>
+            </div>
+            <div class="stats-card bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600">Active Warranties</p>
+                        <p class="text-2xl font-bold" id="active-warranties">0</p>
+                    </div>
+                    <i class="fas fa-shield-alt text-green-500 text-2xl"></i>
+                </div>
+            </div>
+            <div class="stats-card bg-white p-4 rounded-lg shadow-md border-l-4 border-yellow-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600">Expiring Soon</p>
+                        <p class="text-2xl font-bold" id="expiring-soon">0</p>
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl"></i>
+                </div>
+            </div>
+            <div class="stats-card bg-white p-4 rounded-lg shadow-md border-l-4 border-red-500">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600">Expired</p>
+                        <p class="text-2xl font-bold" id="expired">0</p>
+                    </div>
+                    <i class="fas fa-times-circle text-red-500 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex space-x-2">
+                    <a href="https://forms.gle/WcwRx63SakRdH5VM7" target="_blank"
+                        class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center">
+                        <i class="fas fa-plus-circle mr-2"></i> Add New Product
+                    </a>
+                    <button id="refresh-btn"
+                        class="bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors shadow-lg flex items-center">
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 w-full md:w-auto">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search products..."
+                            class="w-full md:w-64 py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+
+                    <select id="filter-status"
+                        class="py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="expiring">Expiring Soon</option>
+                        <option value="expired">Expired</option>
+                    </select>
+
+                    <select id="sort-by"
+                        class="py-2 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Product Name</option>
+                        <option value="expiry">Expiry Date</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="text-center py-10">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Fetching your warranty data...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message"
+            class="hidden text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative"
+            role="alert">
+            <strong class="font-bold">Oops!</strong>
+            <span class="block sm:inline">Something went wrong. Please check your Google Sheet URL and make sure it's
+                published correctly as a CSV.</span>
+            <button id="configure-btn"
+                class="ml-4 bg-red-600 text-white py-1 px-3 rounded text-sm font-semibold hover:bg-red-700">
+                Configure URL
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center bg-white p-8 rounded-lg shadow-md">
+            <i class="fas fa-inbox text-5xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-700">No products added yet</h3>
+            <p class="text-gray-500 mt-2">Get started by adding your first product warranty</p>
+            <a href="https://forms.gle/WcwRx63SakRdH5VM7" target="_blank"
+                class="inline-block mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                Add Your First Product
+            </a>
+        </div>
+
+        <!-- Warranty Items Grid -->
+        <div id="warranty-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Warranty cards will be injected here by JavaScript -->
+        </div>
+
+        <!-- Configuration Modal -->
+        <div id="config-modal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Configure Google Sheet</h3>
+                <p class="text-gray-600 mb-4">Please provide the URL of your Google Sheet published as CSV.</p>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="sheet-url">
+                        Google Sheet CSV URL
+                    </label>
+                    <input type="text" id="sheet-url"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-config"
+                        class="bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="save-config"
+                        class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors">
+                        Save URL
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-12 text-gray-500">
+            <p>Built for NodeForSpeed 2.0 Hackathon 🚀</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Configuration
+            const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
+            const GOOGLE_SHEET_URL = PROXY_URL + 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRT-wHg0oknXLsIhgMLjLPHobCzx6L12BeSTOe_EoH9oMdMw9cPnOoqscMjeHc2ZVEkZAmIheob_Mqo/pub?output=csv';
+            const GOOGLE_FORM_URL = 'https://forms.gle/7otvZjnf3pPGqom27';
+
+            // Elements
+            const warrantyGrid = document.getElementById('warranty-grid');
+            const loader = document.getElementById('loader');
+            const errorMessage = document.getElementById('error-message');
+            const emptyState = document.getElementById('empty-state');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const searchInput = document.getElementById('search-input');
+            const filterStatus = document.getElementById('filter-status');
+            const sortBy = document.getElementById('sort-by');
+            const configureBtn = document.getElementById('configure-btn');
+            const configModal = document.getElementById('config-modal');
+            const cancelConfig = document.getElementById('cancel-config');
+            const saveConfig = document.getElementById('save-config');
+            const sheetUrlInput = document.getElementById('sheet-url');
+
+            // Stats elements
+            const totalProducts = document.getElementById('total-products');
+            const activeWarranties = document.getElementById('active-warranties');
+            const expiringSoon = document.getElementById('expiring-soon');
+            const expired = document.getElementById('expired');
+
+            // Set initial sheet URL in config modal
+            sheetUrlInput.value = GOOGLE_SHEET_URL;
+
+            // Event listeners
+            refreshBtn.addEventListener('click', fetchData);
+            configureBtn.addEventListener('click', () => configModal.classList.remove('hidden'));
+            cancelConfig.addEventListener('click', () => configModal.classList.add('hidden'));
+            saveConfig.addEventListener('click', saveSheetUrl);
+            searchInput.addEventListener('input', filterProducts);
+            filterStatus.addEventListener('change', filterProducts);
+            sortBy.addEventListener('change', filterProducts);
+
+            // Store all products for filtering
+            let allProducts = [];
+
+            function saveSheetUrl() {
+                const url = sheetUrlInput.value.trim();
+                if (url) {
+                    localStorage.setItem('googleSheetUrl', url);
+                    configModal.classList.add('hidden');
+                    fetchData();
+                } else {
+                    alert('Please enter a valid URL');
+                }
+            }
+
+            function fetchData() {
+                if (!GOOGLE_SHEET_URL) {
+                    showError('The Google Sheet URL is not configured. Please configure it using the button below.');
+                    return;
+                }
+
+                warrantyGrid.innerHTML = '';
+                loader.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+                emptyState.classList.add('hidden');
+
+                Papa.parse(GOOGLE_SHEET_URL, {
+                    download: true,
+                    header: true,
+                    complete: function (results) {
+                        loader.classList.add('hidden');
+                        allProducts = results.data.filter(item => item['Product Name'] && item['Purchase Date']);
+
+                        if (allProducts.length === 0) {
+                            emptyState.classList.remove('hidden');
+                            updateStats(0, 0, 0, 0);
+                            return;
+                        }
+
+                        filterProducts();
+                    },
+                    error: function (err) {
+                        loader.classList.add('hidden');
+                        showError('Error fetching data. Please check your Google Sheet URL and make sure it\'s published correctly as a CSV.');
+                        console.error("Error fetching or parsing data:", err);
+                    }
+                });
+            }
+
+            function showError(message) {
+                errorMessage.classList.remove('hidden');
+                errorMessage.querySelector('span').textContent = message;
+            }
+
+            function filterProducts() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const statusFilter = filterStatus.value;
+                const sortOption = sortBy.value;
+
+                let filteredProducts = allProducts.filter(product => {
+                    const matchesSearch = product['Product Name'].toLowerCase().includes(searchTerm);
+                    const status = getWarrantyStatus(product);
+                    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+
+                    return matchesSearch && matchesStatus;
+                });
+
+                // Sort products
+                switch (sortOption) {
+                    case 'newest':
+                        filteredProducts.sort((a, b) => new Date(b['Purchase Date']) - new Date(a['Purchase Date']));
+                        break;
+                    case 'oldest':
+                        filteredProducts.sort((a, b) => new Date(a['Purchase Date']) - new Date(b['Purchase Date']));
+                        break;
+                    case 'name':
+                        filteredProducts.sort((a, b) => a['Product Name'].localeCompare(b['Product Name']));
+                        break;
+                    case 'expiry':
+                        filteredProducts.sort((a, b) => {
+                            const aExpiry = calculateExpiryDate(a);
+                            const bExpiry = calculateExpiryDate(b);
+                            return aExpiry - bExpiry;
+                        });
+                        break;
+                }
+
+                displayData(filteredProducts);
+            }
+
+            function displayData(products) {
+                warrantyGrid.innerHTML = '';
+
+                if (products.length === 0) {
+                    warrantyGrid.innerHTML = `
+                        <div class="col-span-full text-center py-10">
+                            <i class="fas fa-search text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500">No products match your search criteria</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let activeCount = 0;
+                let expiringCount = 0;
+                let expiredCount = 0;
+
+                products.forEach(item => {
+                    const productName = item['Product Name'];
+                    const purchaseDate = new Date(item['Purchase Date']);
+                    const warrantyMonths = parseInt(item['Warranty Period (in months)'], 10);
+                    const billLink = item['Bill/Receipt'] || '#';
+
+                    if (isNaN(purchaseDate.getTime()) || isNaN(warrantyMonths)) {
+                        console.warn('Skipping invalid item:', item);
+                        return;
+                    }
+
+                    const expiryDate = new Date(purchaseDate);
+                    expiryDate.setMonth(expiryDate.getMonth() + warrantyMonths);
+
+                    const today = new Date();
+                    const timeDiff = expiryDate.getTime() - today.getTime();
+                    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+                    const status = getWarrantyStatusFromDays(daysRemaining);
+
+                    // Update counts
+                    if (status === 'active') activeCount++;
+                    else if (status === 'expiring') expiringCount++;
+                    else if (status === 'expired') expiredCount++;
+
+                    const warrantyProgress = Math.max(0, Math.min(100, 100 - (daysRemaining / (warrantyMonths * 30) * 100)));
+
+                    let statusText, statusColor, progressColor;
+                    if (status === 'expired') {
+                        statusText = 'Expired';
+                        statusColor = 'red';
+                        progressColor = 'bg-red-500';
+                    } else if (status === 'expiring') {
+                        statusText = 'Expiring Soon';
+                        statusColor = 'yellow';
+                        progressColor = 'bg-yellow-500';
+                    } else {
+                        statusText = 'Active';
+                        statusColor = 'green';
+                        progressColor = 'bg-green-500';
+                    }
+
+                    const card = `
+                        <div class="card bg-white p-5 rounded-lg shadow-md border-l-4 border-${statusColor}-500 ${status}">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-xl font-bold text-gray-900">${productName}</h3>
+                                <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full bg-${statusColor}-100 text-${statusColor}-800">
+                                    ${statusText}
+                                </span>
+                            </div>
+                            
+                            <div class="mt-4 space-y-3 text-sm">
+                                <div>
+                                    <p class="text-gray-600"><strong>Purchased:</strong> ${purchaseDate.toLocaleDateString()}</p>
+                                    <p class="text-gray-600"><strong>Warranty:</strong> ${warrantyMonths} months</p>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-gray-600"><strong>Expires:</strong> ${expiryDate.toLocaleDateString()}</p>
+                                    <p class="font-semibold text-${statusColor}-600">
+                                        <strong>Days Left:</strong> ${daysRemaining > 0 ? daysRemaining : 0}
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>Warranty Progress</span>
+                                        <span>${Math.round(warrantyProgress)}%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill ${progressColor}" style="width: ${warrantyProgress}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 flex justify-between items-center">
+                                ${billLink !== '#' ? `
+                                    <a href="${billLink}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium flex items-center">
+                                        <i class="fas fa-receipt mr-1"></i> View Bill
+                                    </a>
+                                ` : '<div></div>'}
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    warrantyGrid.innerHTML += card;
+                });
+
+                updateStats(products.length, activeCount, expiringCount, expiredCount);
+            }
+
+            function getWarrantyStatus(product) {
+                const purchaseDate = new Date(product['Purchase Date']);
+                const warrantyMonths = parseInt(product['Warranty Period (in months)'], 10);
+
+                const expiryDate = new Date(purchaseDate);
+                expiryDate.setMonth(expiryDate.getMonth() + warrantyMonths);
+
+                const today = new Date();
+                const timeDiff = expiryDate.getTime() - today.getTime();
+                const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+                return getWarrantyStatusFromDays(daysRemaining);
+            }
+
+            function getWarrantyStatusFromDays(days) {
+                if (days < 0) return 'expired';
+                if (days <= 30) return 'expiring';
+                return 'active';
+            }
+
+            function calculateExpiryDate(product) {
+                const purchaseDate = new Date(product['Purchase Date']);
+                const warrantyMonths = parseInt(product['Warranty Period (in months)'], 10);
+
+                const expiryDate = new Date(purchaseDate);
+                expiryDate.setMonth(expiryDate.getMonth() + warrantyMonths);
+
+                return expiryDate;
+            }
+
+            function updateStats(total, active, expiring, expiredCount) {
+                totalProducts.textContent = total;
+                activeWarranties.textContent = active;
+                expiringSoon.textContent = expiring;
+                expired.textContent = expiredCount;
+            }
+
+            // Initial fetch
+            fetchData();
+        });
+    </script>
+</body>
+
+</html>
